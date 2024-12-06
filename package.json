@@ -1,0 +1,29 @@
+{
+    "name": "startup",
+    "version": "1.0.0",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "node app.json",
+        "dev": "nodemon ./app.js",
+        "build": "npx tailwindcss -i ./public/css/input.css -o ./public/css/output.css --watch"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "description": "",
+    "dependencies": {
+        "body-parser": "^1.20.3",
+        "dotenv": "^16.4.5",
+        "express": "^4.21.1",
+        "jsonwebtoken": "^9.0.2",
+        "multer": "^1.4.5-lts.1",
+        "mysql2": "^3.11.5",
+        "startup": "file:"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.7",
+        "tailwindcss": "^3.4.15"
+    }
+}

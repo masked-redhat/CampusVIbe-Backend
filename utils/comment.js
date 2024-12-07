@@ -11,8 +11,8 @@ export const getCommentContent = (params) => {
 };
 
 export const getCommentOffset = (params) => {
-    return params?.offset ?? 0
-}
+  return parseInt(params?.offset ?? 0);
+};
 
 export const getCommentData = (params) => {
   const commentObj = {};
@@ -23,4 +23,12 @@ export const getCommentData = (params) => {
   commentObj.offset = getCommentOffset(params);
 
   return commentObj;
+};
+
+export const getVoteValue = (params) => {
+  return parseInt(params?.val);
+};
+
+export const getEntityId = (params) => {
+  return params?.entityId;
 };

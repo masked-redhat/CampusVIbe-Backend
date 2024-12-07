@@ -7,6 +7,7 @@ import {
   getPostForUser,
   insertPost,
   likePost,
+  unlikePost,
 } from "../database/posts.js";
 import upload from "../middleware/parser.js";
 
@@ -57,10 +58,19 @@ router.delete("/", async (req, res) => {
 });
 
 // Like post
-router.put("/like", async (req, res) => {
+router.patch("/like", async (req, res) => {
   const postID = getPostID(req.query);
   if (postID) {
     let sC = await likePost(req.user.uid, postID);
+    res.sendStatus(sC);
+  } else res.sendStatus(400);
+});
+
+// Unlike post
+router.delete("/like", async (req, res) => {
+  const postID = getPostID(req.query);
+  if (postID) {
+    let sC = await unlikePost(req.user.uid, postID);
     res.sendStatus(sC);
   } else res.sendStatus(400);
 });

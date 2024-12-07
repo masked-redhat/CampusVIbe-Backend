@@ -111,6 +111,37 @@ export const likePost = async (userID, postID) => {
   return statusCode;
 };
 
+export const unlikePost = async (userID, postID) => {
+  let statusCode = 500;
+
+  try {
+    await connection.promise().beginTransaction();
+
+    let [delRequest] = await connection
+      .promise()
+      .execute("delete from likes where user_id=? and post_id=?", [
+        userID,
+        postID,
+      ]);
+    if (delRequest.affectedRows == 0) {
+      statusCode = 400;
+      throw new Error("You never liked the post");
+    }
+
+    let [updateRequest] = await connection
+      .promise()
+      .execute("update posts set likes = likes-1 where id=?", [postID]);
+
+    await connection.promise().commit();
+    statusCode = 204;
+  } catch (err) {
+    await connection.promise().rollback();
+    if (err.errno == 1062 || err.errno == 1452) statusCode = 400;
+  }
+
+  return statusCode;
+};
+
 const getFriendIDs = (friends) => {
   let friendList = [];
   friends.forEach((friend) => {

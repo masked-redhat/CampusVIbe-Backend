@@ -1,18 +1,15 @@
 import { isNumeric } from "./utils.js";
 
 export const getTitle = (post) => {
-  if (post.title) return post.title;
-  return null;
+  return post?.title
 };
 
 export const getContent = (post) => {
-  if (post.content) return post.content;
-  return null;
+  return post?.content
 };
 
 export const getImage = (fileObj) => {
-  if (fileObj != undefined) return fileObj.filename;
-  return null;
+  return fileObj?.filename
 };
 
 export const getPostData = (post, fileObj) => {
@@ -31,6 +28,5 @@ export const getOffsetValue = (params) => {
 };
 
 export const getPostID = (params) => {
-  if (params.postID) return params.postID;
-  else return null;
+  return params?.postID
 };

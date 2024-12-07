@@ -13,7 +13,7 @@ router.post("/", async (req, res) => {
   const { username, password } = req.body;
   const result = await getUser(username, password);
 
-  if (result.user == null || result.user.blacklist) {
+  if (result.user === null || result.user.blacklist) {
     // User does not exist or is blacklisted
     res.sendStatus(result.sC);
     return;
@@ -30,7 +30,7 @@ router.post("/new", async (req, res) => {
   const { username, password } = req.body;
   const result = await insertUser(username, password);
 
-  if (result.uid == null) {
+  if (result.uid === null) {
     // No user created
     res.sendStatus(result.sC);
     return;

@@ -23,7 +23,7 @@ router.get("/", async (req, res) => {
   let postsToSend = {},
     sC = 200;
 
-  if (params.type == "personal") {
+  if (params.type === "personal") {
     // Personal posts
     let response = await getPostForUser(uid, offset);
     postsToSend = response.posts;

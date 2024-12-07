@@ -1,11 +1,11 @@
 import express from "express";
 import dotenv from "dotenv";
 import connection from "./database/connection.js";
-import { LoginRouter } from "./routes/Login.js";
-import { PostRouter } from "./routes/posts.js";
-import { FriendRouter } from "./routes/Friends.js";
-import { CommentRouter } from "./routes/comments.js";
-import { ProfileRouter } from "./routes/profile.js";
+import { LoginRouter } from "./routes/login.js";
+// import { PostRouter } from "./routes/posts.js";
+// import { FriendRouter } from "./routes/Friends.js";
+// import { CommentRouter } from "./routes/comments.js";
+// import { ProfileRouter } from "./routes/profile.js";
 dotenv.config();
 
 // Defining Application
@@ -25,10 +25,10 @@ app.use(express.json());
 
 // Routes
 app.use("/login", LoginRouter);
-app.use("/posts", PostRouter);
-app.use("/friends", FriendRouter);
-app.use("/comments", CommentRouter);
-app.use("/profile", ProfileRouter);
+// app.use("/posts", PostRouter);
+// app.use("/friends", FriendRouter);
+// app.use("/comments", CommentRouter);
+// app.use("/profile", ProfileRouter);
 
 // Starting application
 app.listen(port, () => {

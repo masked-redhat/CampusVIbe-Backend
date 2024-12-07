@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { tokenize } from "../middleware/authentication.js";
-import { getUser, insertUser } from "../database/Users.js";
 import upload from "../middleware/parser.js";
+import handlers from "../handlers/login.js";
+import codes from "../utils/status_codes.js";
 
 const router = Router();
 
@@ -10,44 +10,26 @@ router.use(upload.none());
 
 // Logging to an existing account
 router.post("/", async (req, res) => {
-  const { username, password } = req.body;
-  const result = await getUser(username, password);
+  const { statusCode, message, token } = await handlers.handleLoginRequest(req);
 
-  if (result.user === null || result.user.blacklist) {
-    // User does not exist or is blacklisted
-    res.sendStatus(result.sC);
-    return;
-  }
-
-  const usrObj = { uid: result.user.id, username: username };
-  const token = tokenize(usrObj);
-
-  res.status(200).json({ jwt: token });
+  res.status(statusCode).json({ message, token });
 });
 
 // Creating a new account
 router.post("/new", async (req, res) => {
-  const { username, password } = req.body;
-  const result = await insertUser(username, password);
+  const { statusCode, message, token } = await handlers.handleSignupRequest(
+    req
+  );
 
-  if (result.uid === null) {
-    // No user created
-    res.sendStatus(result.sC);
-    return;
-  }
-
-  const usrObj = { uid: result.uid, username: username };
-  const token = tokenize(usrObj);
-
-  res.status(result.sC).json({ jwt: token });
+  res.status(statusCode).json({ message, token });
 });
 
-router.all("/", (req, res) => {
-  res.sendStatus(405); // Other methods not allowed on these uri
+router.all("/", (_, res) => {
+  res.sendStatus(codes.clientError.METHOD_NOT_ALLOWED);
 });
 
-router.all("/new", (req, res) => {
-  res.sendStatus(405);
+router.all("/new", (_, res) => {
+  res.sendStatus(codes.clientError.METHOD_NOT_ALLOWED);
 });
 
 export const LoginRouter = router;

@@ -1,4 +1,4 @@
-import connection from "./connection.js";
+import connection, { getResponseDb } from "./connection.js";
 import { getFriends } from "./friends.js";
 
 const PERREQUESTPOSTLIMIT = 10;
@@ -7,12 +7,10 @@ export const getAllPostsExceptUser = async (userID, offsetValue = 0) => {
   let statusCode = 500,
     posts = [];
   try {
-    let queryResponse = await connection
-      .promise()
-      .query(
-        "select * from posts where user_id <> ? order by timestamp desc limit ? offset ?",
-        [userID, PERREQUESTPOSTLIMIT, offsetValue]
-      );
+    let queryResponse = await getResponseDb(
+      "select * from posts where user_id <> ? order by timestamp desc limit ? offset ?",
+      [userID, PERREQUESTPOSTLIMIT, offsetValue]
+    );
 
     posts = queryResponse[0];
     statusCode = 200;
@@ -32,9 +30,11 @@ export const getPostForUser = async (userID, offsetValue = 0) => {
     if (friends.length == 0) statusCode = 200;
     else {
       let query = prepareQuery(friends);
-      let result = await connection
-        .promise()
-        .query(query, [...friends, PERREQUESTPOSTLIMIT, offsetValue]);
+      let result = await getResponseDb(query, [
+        ...friends,
+        PERREQUESTPOSTLIMIT,
+        offsetValue,
+      ]);
       posts = result[0];
       statusCode = 200;
     }
@@ -47,12 +47,10 @@ export const insertPost = async (userID, postData) => {
   let statusCode = 500,
     postID = null;
   try {
-    let post = await connection
-      .promise()
-      .query(
-        "insert into posts (user_id, title, content, image) values (?, ?, ?, ?)",
-        [userID, postData.title, postData.content, postData.image]
-      );
+    let post = await getResponseDb(
+      "insert into posts (user_id, title, content, image) values (?, ?, ?, ?)",
+      [userID, postData.title, postData.content, postData.image]
+    );
 
     postID = post[0].insertId;
     statusCode = 201;
@@ -68,12 +66,10 @@ export const insertPost = async (userID, postData) => {
 export const deletePost = async (userID, postID) => {
   let statusCode = 500;
   try {
-    let res = await connection
-      .promise()
-      .query("delete from posts where id = ? and user_id = ?", [
-        postID,
-        userID,
-      ]);
+    let res = await getResponseDb(
+      "delete from posts where id = ? and user_id = ?",
+      [postID, userID]
+    );
     if (res[0].affectedRows == 1) statusCode = 204;
     else statusCode = 400;
   } catch (err) {
@@ -88,16 +84,15 @@ export const likePost = async (userID, postID) => {
   try {
     await connection.promise().beginTransaction();
 
-    await connection
-      .promise()
-      .execute("insert into likes (user_id, post_id) values (?, ?)", [
-        userID,
-        postID,
-      ]);
+    await getResponseDb("insert into likes (user_id, post_id) values (?, ?)", [
+      userID,
+      postID,
+    ]);
 
-    const [updateResult] = await connection
-      .promise()
-      .execute("update posts set likes = likes +1 where id=?", [postID]);
+    const [updateResult] = await getResponseDb(
+      "update posts set likes = likes +1 where id=?",
+      [postID]
+    );
 
     if (updateResult.affectedRows == 0)
       throw new Error("Post not found or update failed");
@@ -117,20 +112,19 @@ export const unlikePost = async (userID, postID) => {
   try {
     await connection.promise().beginTransaction();
 
-    let [delRequest] = await connection
-      .promise()
-      .execute("delete from likes where user_id=? and post_id=?", [
-        userID,
-        postID,
-      ]);
+    let [delRequest] = await getResponseDb(
+      "delete from likes where user_id=? and post_id=?",
+      [userID, postID]
+    );
     if (delRequest.affectedRows == 0) {
       statusCode = 400;
       throw new Error("You never liked the post");
     }
 
-    let [updateRequest] = await connection
-      .promise()
-      .execute("update posts set likes = likes-1 where id=?", [postID]);
+    let [updateRequest] = await getResponseDb(
+      "update posts set likes = likes-1 where id=?",
+      [postID]
+    );
 
     await connection.promise().commit();
     statusCode = 204;
@@ -159,11 +153,3 @@ const prepareQuery = (friends) => {
   query += "order by timestamp desc limit ? offset ?";
   return query;
 };
-
-// const updateLike = async (postID) => {
-//     try{
-//     let request = await connection
-//       .promise()
-//       .query("update posts set likes = likes+1 where id = ?", [postID]);}
-
-// }

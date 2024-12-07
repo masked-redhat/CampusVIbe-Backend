@@ -1,32 +1,20 @@
 import { isNumeric } from "./utils.js";
 
-export const getTitle = (post) => {
-  return post?.title
-};
+class PostParams {
+  constructor(params, fileObj=null) {
+    this.title = params?.title;
+    this.content = params?.content;
+    this.image = fileObj?.filename ?? null;
+    this.offsetValue = parseInt(params?.offsetValue)
+      ? isNumeric(params?.offsetValue)
+      : 0;
+    this.postId = params?.postId;
+  }
 
-export const getContent = (post) => {
-  return post?.content
-};
+  getPostData = () => {
+    let postObj = {title: this.title, content: this.content, image: this.image, offsetVal: this.offsetValue, postId: this.postId}
+    return postObj
+  };
+}
 
-export const getImage = (fileObj) => {
-  return fileObj?.filename
-};
-
-export const getPostData = (post, fileObj) => {
-  let postObj = {};
-
-  postObj.title = getTitle(post);
-  postObj.content = getContent(post);
-  postObj.image = getImage(fileObj);
-
-  return postObj;
-};
-
-export const getOffsetValue = (params) => {
-  if (isNumeric(params.offsetValue)) return parseInt(params.offsetValue);
-  return 0;
-};
-
-export const getPostID = (params) => {
-  return params?.postID
-};
+export default PostParams;

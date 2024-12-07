@@ -1,6 +1,6 @@
 import { Router } from "express";
 import authenticate from "../middleware/authentication.js";
-import { getOffsetValue, getPostData, getPostID } from "../utils/post.js";
+import PostParams from "../utils/post.js";
 import {
   deletePost,
   getAllPostsExceptUser,
@@ -18,20 +18,19 @@ router.use(authenticate);
 
 // Get posts
 router.get("/", async (req, res) => {
-  const params = req.query;
-  const uid = req.user.uid,
-    offset = getOffsetValue(params);
+  const postVals = new PostParams(req.query)
+  const userId = req.user.uid;
   let postsToSend = {},
     sC = 200;
 
   if (params.type === "personal") {
     // Personal posts
-    let response = await getPostForUser(uid, offset);
+    let response = await getPostForUser(userId, postVals.offsetValue);
     postsToSend = response.posts;
     sC = response.sC;
   } else {
     // Every other request would be considered 'global'
-    let response = await getAllPostsExceptUser(uid, offset);
+    let response = await getAllPostsExceptUser(userId, postVals.offsetValue);
     postsToSend = response.posts;
     sC = response.sC;
   }
@@ -41,9 +40,9 @@ router.get("/", async (req, res) => {
 
 // Create post
 router.post("/", upload.single("image"), async (req, res) => {
-  const post = getPostData(req.body, req.file);
+  const postVals = new PostParams(req.body, req.file);
 
-  const result = await insertPost(req.user.uid, post);
+  const result = await insertPost(req.user.uid, postVals);
 
   res.status(result.sC).json({ postID: result.pID });
 });

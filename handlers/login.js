@@ -9,7 +9,10 @@ const handleLoginRequest = async (req) => {
     message,
     token = null;
 
-  if (!user.isUser()) {
+  if (!user.serverProcessedRequest) {
+    statusCode = codes.serverError.INTERNAL_SERVER_ERROR;
+    message = "sorry for the inconvenience caused by our engineers";
+  } else if (!user.isUser()) {
     statusCode = codes.clientError.NOT_FOUND;
     message = "invalid username or password";
   } else if (user.isBlacklisted()) {
@@ -32,7 +35,10 @@ const handleSignupRequest = async (req) => {
     message,
     token = null;
 
-  if (!user.isUser()) {
+  if (!user.serverProcessedRequest) {
+    statusCode = codes.serverError.INTERNAL_SERVER_ERROR;
+    message = "sorry for the inconvenience caused by our engineers";
+  } else if (!user.isUser()) {
     statusCode = codes.clientError.BAD_REQUEST;
     message = "try again with a new username";
   } else if (user.isBlacklisted()) {

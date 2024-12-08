@@ -3,20 +3,32 @@ import { isEmpty } from "../utils/utils.js";
 import { getResponseDb } from "./connection.js";
 
 const getUserByUsernamePassword = async (username, password) => {
-  let [userResult] = await getResponseDb(
-    "select * from users where username = ?",
-    [username]
-  );
+  let serverResponded = false;
 
-  const user = userResult[0];
+  let user = {};
 
-  if (isEmpty(user) || !secure.comparePassword(password, user.password))
-    return {};
+  try {
+    let [userResult] = await getResponseDb(
+      "select * from users where username = ?",
+      [username]
+    );
 
-  return user;
+    user = userResult[0];
+
+    if (isEmpty(user) || !secure.comparePassword(password, user.password))
+      throw new Error("User is empty or password is wrong");
+  } catch (err) {
+    console.log(err);
+    return [{}, serverResponded];
+  }
+
+  serverResponded = true;
+  return [user, serverResponded];
 };
 
 const createUser = async (username, password) => {
+  let serverResponded = false;
+
   password = secure.hashPassword(password);
 
   const user = {};
@@ -32,6 +44,8 @@ const createUser = async (username, password) => {
 
     user.id = response?.insertId;
     user.blacklist = false;
+
+    serverResponded = true;
   } catch (err) {
     console.log(err);
 
@@ -42,7 +56,7 @@ const createUser = async (username, password) => {
   user.username = username;
   user.password = password;
 
-  return user;
+  return [user, serverResponded];
 };
 
 const db = {

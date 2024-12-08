@@ -8,19 +8,30 @@ class User {
   constructor(params) {
     this.username = params?.username;
     this.password = params?.password;
+    this.serverProcessedRequest = false;
 
     this.#uid = null;
     this.#blacklisted = false;
   }
 
   async getUser() {
-    let user = await db.getUserByUsernamePassword(this.username, this.password);
+    let [user, serverResult] = await db.getUserByUsernamePassword(
+      this.username,
+      this.password
+    );
+
+    if (serverResult) this.serverProcessedRequest = true;
 
     this.setIdBlacklist(user);
   }
 
   async createUser() {
-    let user = await db.createUser(this.username, this.password);
+    let [user, serverResult] = await db.createUser(
+      this.username,
+      this.password
+    );
+
+    if (serverResult) this.serverProcessedRequest = true;
 
     this.setIdBlacklist(user);
   }

@@ -1,51 +1,117 @@
 import { Router } from "express";
 import authenticate from "../middleware/authentication.js";
-import {
-  acceptFriendRequest,
-  deleteFriend,
-  friendRequest,
-  getFriends,
-} from "../database/friends.js";
-import { getFriendID } from "../utils/friend.js";
+import Friend from "../controllers/friends.js";
+import codes from "../utils/status_codes.js";
+import upload from "../middleware/parser.js";
 
 const router = Router();
 
 // middleware for /friends and /friends/*
 router.use(authenticate);
+router.use(upload.none());
 
-// Gets all the friends of the user
+// Get friends
 router.get("/", async (req, res) => {
-  let result = await getFriends(req.user.uid);
+  const friend = new Friend(req.user.uid);
 
-  res.status(result.sC).json(result.friends);
+  let friends = await friend.friendsList();
+
+  let statusCode = codes.get.OK;
+  let message = "got friends for you";
+
+  res.status(statusCode).json({ message, friends });
 });
 
-// Sending a friend request
+// Get requests
 router.get("/request", async (req, res) => {
-  const friendID = getFriendID(req.query);
+  const friend = new Friend(req.user.uid, req.query);
 
-  if (friendID) {
-    let response = await friendRequest(req.user.id, friendID);
-    res.sendStatus(response);
-  } else res.sendStatus(400);
+  let requests = await friend.getRequests();
+
+  let statusCode = codes.get.OK;
+  let message = "got requests for you";
+
+  res.status(statusCode).json({ message, requests });
 });
 
-// Accepting a friend request
+// Send friend request
 router.post("/request", async (req, res) => {
-  const friendID = getFriendID(req.query);
+  const friend = new Friend(req.user.uid, req.body);
+  await friend.checkDatabase();
 
-  if (friendID) {
-    let response = await acceptFriendRequest(req.user.id, friendID);
-    res.sendStatus(response);
-  } else res.sendStatus(400);
+  let requestSent = await friend.sendRequest();
+
+  let statusCode, message;
+
+  if (requestSent) {
+    statusCode = codes.post.CREATED;
+    message = "request sent to the user";
+  } else {
+    statusCode = codes.clientError.BAD_REQUEST;
+    message = "try again later";
+  }
+
+  res.status(statusCode).json({ message });
+});
+
+// Accept friend request
+router.put("/request", async (req, res) => {
+  const friend = new Friend(req.user.uid, req.body);
+  await friend.checkDatabase();
+
+  let requestAccepted = await friend.acceptRequest();
+
+  let statusCode, message;
+
+  if (requestAccepted) {
+    statusCode = codes.put.OK;
+    message = "request accepted";
+  } else {
+    statusCode = codes.clientError.BAD_REQUEST;
+    message = "try again";
+  }
+
+  res.status(statusCode).json({ message });
+});
+
+// Cancel Request
+router.delete("/request", async (req, res) => {
+  const friend = new Friend(req.user.uid, req.query);
+  await friend.checkDatabase();
+
+  let requestCancel = await friend.cancelRequest();
+
+  let statusCode, message;
+
+  if (requestCancel) {
+    statusCode = codes.delete.NO_CONTENT;
+    message = "request cancelled";
+  } else {
+    statusCode = codes.clientError.BAD_REQUEST;
+    message = "try again";
+  }
+
+  res.status(statusCode).json({ message });
 });
 
 // Unfriending
 router.delete("/", async (req, res) => {
-  const friendID = getFriendID(req.query);
+  const friend = new Friend(req.user.uid, req.query);
+  await friend.checkDatabase();
 
-  let sC = await deleteFriend(req.user.uid, friendID);
-  res.sendStatus(sC);
+  let removeFriend = await friend.removeFriend();
+
+  let statusCode, message;
+
+  if (removeFriend) {
+    statusCode = codes.delete.NO_CONTENT;
+    message = "request cancelled";
+  } else {
+    statusCode = codes.clientError.BAD_REQUEST;
+    message = "try again";
+  }
+
+  res.status(statusCode).json({ message });
 });
 
 router.all("/", (req, res) => {

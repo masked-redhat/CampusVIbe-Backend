@@ -1,141 +1,162 @@
-import connection from "./connection.js";
+import { affectedOne, getMinMax, isEmpty } from "../utils/utils.js";
+import { getResponseDb } from "./connection.js";
 
-export const friendRequest = async (userID, friendID) => {
-  let statusCode = 500;
-  try {
-    let friends = await checkFriends(userID, friendID);
-    let requestRepeat = await requestAlreadySent(userID, friendID);
+const tables = { FRIENDS: "friends", REQUESTS: "requests" };
+const types = { SENT: "user_1", RECIEVED: "user_2" };
 
-    if (friends || requestRepeat) statusCode = 400;
-    else {
-      let request = await connection
-        .promise()
-        .query("insert into requests(user_1, user_2) values (?, ?)", [
-          userID,
-          friendID,
-        ]);
-
-      if (request[0].affectedRows == 1) statusCode = 204;
-      else statusCode = 304;
-    }
-  } catch (err) {
-    // console.log(err);
-    statusCode = 500;
-    if ((err.errno = 1062)) statusCode = 400;
-  }
-
-  return statusCode;
+const checkForFriends = async (userId, friendId) => {
+  return (
+    (await runSearchFor(userId, friendId, tables.FRIENDS)) ||
+    (await runSearchFor(friendId, userId, tables.FRIENDS))
+  );
 };
 
-export const acceptFriendRequest = async (userID, friendID) => {
-  let statusCode = 500;
-  try {
-    let friends = await checkFriends(userID, friendID);
-    let request = await requestAlreadySent(friendID, userID);
+const checkForRequests = async (userId, friendId) => {
+  return await runSearchFor(userId, friendId, tables.REQUESTS);
+};
 
-    if (friends || !request) statusCode = 400;
-    else {
-      if (
-        (await createFriend(userID, friendID)) &&
-        (await deleteRequest(friendID, userID))
-      )
-        statusCode = 204;
-      else statusCode = 304;
-    }
+const runSearchFor = async (userId, friendId, searchTable) => {
+  const sqlQuery = `select * from ${searchTable} where user_1=? and user_2=?`;
+
+  try {
+    let [found] = await getResponseDb(sqlQuery, [userId, friendId]);
+
+    if (isEmpty(found)) return false;
+  } catch (err) {
+    console.log(err);
+    return false;
+  }
+
+  return true;
+};
+
+const deleteFriendRequest = async (userId, requestedFriendId) => {
+  const { minVal: usrMin, maxVal: usrMax } = getMinMax(
+    userId,
+    requestedFriendId
+  );
+
+  try {
+    let [res] = await getResponseDb(
+      "delete from requests where user_min=? and user_max=?",
+      [usrMin, usrMax]
+    );
+
+    if (affectedOne(res)) return true;
   } catch (err) {
     console.log(err);
   }
 
-  return statusCode;
+  return false;
 };
 
-export const getFriends = async (userID) => {
-  let statusCode = 500,
-    friends = [];
+const makeFriends = async (userId, friendId) => {
   try {
-    let result = await connection
-      .promise()
-      .query("select * from friends where user_1=? or user_2=?", [
-        userID,
-        userID,
-      ]);
+    let [res] = await getResponseDb(
+      "insert into friends (user_1, user_2) values (?, ?)",
+      [userId, friendId]
+    );
 
-    result[0].forEach((item) => {
-      let friend = {};
-      if (item.user_1 == userID) friend.id = item.user_2;
-      else friend.id = item.user_1;
-      friend.timestamp = item.timestamp;
-      friends.push(friend);
+    if (affectedOne(res)) return true;
+  } catch (err) {
+    console.log(err);
+  }
+
+  return false;
+};
+
+const deleteFriend = async (userId, friendId) => {
+  const { minVal: usrMin, maxVal: usrMax } = getMinMax(userId, friendId);
+
+  try {
+    let [res] = await getResponseDb(
+      "delete from friends where user_min=? and user_max=?",
+      [usrMin, usrMax]
+    );
+
+    if (affectedOne(res)) return true;
+  } catch (err) {
+    console.log(err);
+  }
+
+  return false;
+};
+
+const sendFriendRequest = async (userId, friendId) => {
+  try {
+    let [res] = await getResponseDb(
+      "insert into requests(user_1, user_2) values (?, ?)",
+      [userId, friendId]
+    );
+
+    if (affectedOne(res)) return true;
+  } catch (err) {
+    console.log(err);
+  }
+
+  return false;
+};
+
+const getFriends = async (userId) => {
+  let friends = [];
+
+  try {
+    let [res] = await getResponseDb(
+      "select * from friends where user_1=? or user_2=?",
+      [userId, userId]
+    );
+
+    res.forEach((friendObj) => {
+      friendObj.friend = friendObj.user_2
+        ? friendObj.user_1 === userId
+        : friendObj.user_1;
+      delete friendObj.user_1;
+      delete friendObj.user_2;
+
+      friends.push(friendObj);
     });
-
-    statusCode = 200;
-  } catch (err) {}
-  return { sC: statusCode, friends: friends };
-};
-
-export const deleteFriend = async (userID, friendID) => {
-  let statusCode = 500;
-  const userMin = Math.min(userID, friendID),
-    userMax = Math.max(userID, friendID);
-  try {
-    let request = await connection
-      .promise()
-      .query("delete from friends where user_min=? and user_max=?", [
-        userMin,
-        userMax,
-      ]);
-    if (request[0].affectedRows == 1) statusCode = 204;
-    else statusCode = 304;
-  } catch (err) {}
-
-  return statusCode;
-};
-
-const checkFriends = async (userID, friendID, table = "friends") => {
-  const userMin = Math.min(userID, friendID),
-    userMax = Math.max(userID, friendID);
-  const query = `select * from ${table} where user_min = ? and user_max = ?`;
-  try {
-    let request = await connection.promise().query(query, [userMin, userMax]);
-
-    if (request[0].length != 0) return true;
-    return false;
-  } catch (err) {
-    // console.log(err);
-    return false;
-  }
-};
-
-const requestAlreadySent = async (userId, friendID) => {
-  return await checkFriends(userId, friendID, "requests");
-};
-
-const createFriend = async (userID, friendID) => {
-  try {
-    let request = await connection
-      .promise()
-      .query("insert into friends (user_1, user_2) values (?, ?)", [
-        userID,
-        friendID,
-      ]);
-    if (request[0].affectedRows == 1) return true;
   } catch (err) {
     console.log(err);
   }
-  return false;
+
+  return friends;
 };
 
-const deleteRequest = async (userID, friendID) => {
+const getRequests = async (userId, requestType) => {
+  let requests = [];
+
   try {
-    let request = await connection
-      .promise()
-      .query("delete from requests where user_1 = ? and user_2 = ?", [
-        userID,
-        friendID,
-      ]);
-    if (request[0].affectedRows == 1) return true;
+    let [res] = await getResponseDb(
+      `select * from requests where ${requestType}=?`,
+      [userId]
+    );
+
+    requests = res;
   } catch (err) {
     console.log(err);
   }
-  return false;
+
+  return requests;
 };
+
+const getSentRequests = async (userId) => {
+  return await getRequests(userId, types.SENT);
+};
+
+const getRecievedRequests = async (userId) => {
+  return await getRequests(userId, types.RECIEVED);
+};
+
+const db = {
+  checkForFriends,
+  checkForRequests,
+  deleteFriendRequest,
+  makeFriends,
+  deleteFriend,
+  sendFriendRequest,
+  getFriends,
+  getRecievedRequests,
+  getSentRequests,
+};
+
+export default db;

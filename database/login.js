@@ -1,5 +1,5 @@
 import secure from "../utils/password.js";
-import { isEmpty } from "../utils/utils.js";
+import { affected, isEmpty } from "../utils/utils.js";
 import { getResponseDb } from "./connection.js";
 
 const getUserByUsernamePassword = async (username, password) => {
@@ -34,15 +34,15 @@ const createUser = async (username, password) => {
   const user = {};
 
   try {
-    let [response] = await getResponseDb(
+    let [res] = await getResponseDb(
       "insert into users (username, password) values (?, ?)",
       [username, password]
     );
 
-    if (response.affectedRows === 0)
+    if (!affected(res))
       throw new Error("User did not get created, but the query ran");
 
-    user.id = response?.insertId;
+    user.id = res?.insertId;
     user.blacklist = false;
 
     serverResponded = true;

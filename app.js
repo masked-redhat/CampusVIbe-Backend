@@ -4,7 +4,7 @@ import connection from "./database/connection.js";
 import { LoginRouter } from "./routes/login.js";
 import { PostRouter } from "./routes/posts.js";
 import { FriendRouter } from "./routes/friends.js";
-// import { CommentRouter } from "./routes/comments.js";
+import { CommentRouter } from "./routes/comments.js";
 // import { ProfileRouter } from "./routes/profile.js";
 dotenv.config();
 
@@ -27,7 +27,7 @@ app.use(express.json());
 app.use("/login", LoginRouter);
 app.use("/posts", PostRouter);
 app.use("/friends", FriendRouter);
-// app.use("/comments", CommentRouter);
+app.use("/comments", CommentRouter);
 // app.use("/profile", ProfileRouter);
 
 // Starting application

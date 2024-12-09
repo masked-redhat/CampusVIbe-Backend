@@ -1,22 +1,8 @@
 import { Router } from "express";
-import { getPostID } from "../utils/post.js";
-import {
-  getCommentData,
-  getCommentId,
-  getCommentType,
-  getEntityId,
-  getVoteValue,
-} from "../utils/comment.js";
-import {
-  deleteComment,
-  getCommentsForPost,
-  getReplies,
-  updateCommentVotes,
-  writeComment,
-  writeReply,
-} from "../database/comments.js";
 import authenticate from "../middleware/authentication.js";
 import upload from "../middleware/parser.js";
+import codes from "../utils/status_codes.js";
+import handlers from "../handlers/comments.js";
 
 const router = Router();
 
@@ -26,74 +12,60 @@ router.use(upload.none());
 
 // Get Comments
 router.get("/", async (req, res) => {
-  const comment = getCommentData(req.query);
+  const { statusCode, message, comments } = await handlers.handleGetComments(
+    req
+  );
 
-  let result = await getCommentsForPost(comment);
-
-  res.status(result.sC).json({ comments: result.comments });
+  res.status(statusCode).json({ message, comments });
 });
 
 // Post Comment
 router.post("/", async (req, res) => {
-  const comment = getCommentData(req.body);
-  console.log(comment);
+  const { statusCode, message, commentId } = await handlers.handleWriteComment(
+    req
+  );
 
-  let result = await writeComment(req.user.uid, comment);
-
-  res.status(result.sC).json({ id: result.commentId });
+  res.status(statusCode).json({ message, commentId });
 });
 
 // Delete Comment/Reply
 router.delete(["/", "/reply"], async (req, res) => {
-  const commentId = getCommentId(req.query);
+  const { statusCode, message } = await handlers.handleDeleteComment(req);
 
-  let sC = await deleteComment(req.user.uid, commentId);
-
-  res.sendStatus(sC);
+  res.status(statusCode).json({ message });
 });
 
 // Upvote, Unvote, Downvote Comment
 router.put("/vote", async (req, res) => {
-  const commentId = getCommentId(req.query);
-  const voteVal = getVoteValue(req.query);
+  const { statusCode, message } = await handlers.handleVoting(req);
 
-  if ([0, 1, -1].includes(voteVal)) {
-    let result = await updateCommentVotes(req.user.uid, commentId, voteVal);
-
-    res.sendStatus(result);
-  } else res.sendStatus(400);
+  res.status(statusCode).json({ message });
 });
 
 // Get replies to a comment
 router.get("/reply", async (req, res) => {
-  const comment = getCommentData(req.query);
-  if (comment.id) {
-    let result = await getReplies(comment);
+  const { statusCode, message, replies } = handlers.handleGetReplies(req);
 
-    res.status(result.sC).json(result.replies);
-  } else res.sendStatus(400);
+  res.status(statusCode).json({ message, replies });
 });
 
 // post a reply to comment
 router.post("/reply", async (req, res) => {
-  const comment = getCommentData(req.body);
-  const entityId = getEntityId(req.body);
+  const { statusCode, message, replyId } = handlers.handleWriteReply(req);
 
-  let result = await writeReply(req.user.uid, comment, entityId);
-
-  res.status(result.sC).json({ id: result.replyId });
+  res.status(statusCode).json({ message, replyId });
 });
 
-router.all("/", (req, res) => {
-  res.sendStatus(405);
+router.all("/", (_, res) => {
+  res.sendStatus(codes.clientError.METHOD_NOT_ALLOWED);
 });
 
-router.all("/vote", (req, res) => {
-  res.sendStatus(405);
+router.all("/vote", (_, res) => {
+  res.sendStatus(codes.clientError.METHOD_NOT_ALLOWED);
 });
 
-router.all("/reply", (req, res) => {
-  res.sendStatus(405);
+router.all("/reply", (_, res) => {
+  res.sendStatus(codes.clientError.METHOD_NOT_ALLOWED);
 });
 
 export const CommentRouter = router;

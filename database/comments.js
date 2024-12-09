@@ -1,219 +1,220 @@
-import connection from "./connection.js";
+import { affected, affectedOne, isEmpty } from "../utils/utils.js";
+import { getResponseDb } from "./connection.js";
 
-export const getCommentsForPost = async (commentObj) => {
-  let statusCode = 500,
-    comments = [];
-  try {
-    let [request] = await connection
-      .promise()
-      .query(prepareQueryRead(commentObj.type), [
-        commentObj.id,
-        commentObj.offset,
-      ]);
-
-    if (request.length != 0) {
-      statusCode = 200;
-      comments = request;
-    } else statusCode = 400;
-  } catch (err) {
-    if (err.errno == 450) statusCode = 400;
-    // console.log(err);
-  }
-  return { sC: statusCode, comments: comments };
+const DEFAULTCOMMENTSORDER = "order by votes desc, timestamp desc";
+const DEFAULTCOMMENTLIMIT = "10";
+const commentType = {
+  POST: "post",
+  ANSWER: "answer",
 };
 
-export const writeComment = async (userID, commentObj) => {
-  let statusCode = 500,
-    commentId = null;
+const getComments = async (type, entityId, offset) => {
+  let comments = [];
 
   try {
-    let [request] = await connection
-      .promise()
-      .query(prepareQueryWrite(commentObj.type), [
-        commentObj.id,
-        userID,
-        commentObj.comment,
-      ]);
+    const query = prepareReadQuery(type);
+    let [res] = await getResponseDb(query, [entityId, offset]);
 
-    if (request.affectedRows === 1) {
-      statusCode = 201;
-      commentId = request.insertId;
-    } else statusCode = 400;
+    comments = res;
   } catch (err) {
-    if (err.errno == 1048 || err.errno == 1452 || err.errno == 450)
-      statusCode = 400;
-    // console.log(err);
-  }
-
-  return { sC: statusCode, commentId: commentId };
-};
-
-export const deleteComment = async (userID, commentId) => {
-  let statusCode = 500;
-  try {
-    let [validComment] = await connection
-      .promise()
-      .query("select * from comments where user_id=? and id=?", [
-        userID,
-        commentId,
-      ]);
-    if (validComment.length == 1) {
-      let [request] = await connection
-        .promise()
-        .query("delete from comments where reply_id=? or id=?", [
-          commentId,
-          commentId,
-        ]);
-      if (request.affectedRows >= 1) statusCode = 204;
-    } else statusCode = 400;
-  } catch (err) {
-    // console.log(err);
-  }
-  return statusCode;
-};
-
-export const updateCommentVotes = async (userID, commentID, voteVal) => {
-  let statusCode = 500;
-
-  try {
-    let updatedVal = voteVal;
-    await connection.promise().beginTransaction();
-
-    let [currValue] = await connection
-      .promise()
-      .execute("select * from commentvotes where user_id=? and comment_id=?", [
-        userID,
-        commentID,
-      ]);
-
-    if (currValue.length == 0) {
-      if (voteVal == 0) {
-        statusCode = 422;
-        throw new Error("No action can be done");
-      }
-      updatedVal = voteVal;
-      let [request] = await connection
-        .promise()
-        .execute(
-          "insert into commentvotes (vote_value, user_id, comment_id) values (?, ?, ?)",
-          [voteVal, userID, commentID]
-        );
-
-      if (request.affectedRows == 0) throw new Error("Couldn't Insert");
-    } else {
-      let currVote = currValue[0].vote_value;
-      switch (currVote) {
-        case 0:
-          updatedVal = voteVal;
-          break;
-        case 1:
-          updatedVal = voteVal - 1;
-          break;
-        case -1:
-          updatedVal = voteVal + 1;
-          break;
-      }
-      let [request] = await connection
-        .promise()
-        .execute(
-          "update commentvotes set vote_value =? where user_id=? and comment_id=?",
-          [voteVal, userID, commentID]
-        );
-
-      if (request.affectedRows == 0) throw new Error("Couldn't Insert");
-    }
-
-    let [request] = await connection
-      .promise()
-      .execute("update comments set votes = votes + ? where id=?", [
-        updatedVal,
-        commentID,
-      ]);
-
-    if (request.affectedRows == 1) statusCode = 204;
-    else statusCode = 400;
-
-    await connection.promise().commit();
-  } catch (err) {
-    await connection.promise().rollback();
-    if (err.errno == 1062) statusCode = 400;
     console.log(err);
   }
 
-  return statusCode;
+  return comments;
 };
 
-export const getReplies = async (comment) => {
-  let statusCode = 500,
-    replies = [];
+const writeComment = async (userId, type, entityId, comment) => {
+  let success = false,
+    commentId = null;
+
   try {
-    let [result] = await connection
-      .promise()
-      .query(
-        "select * from comments where reply_id=? order by votes desc, timestamp desc limit 10 offset ?",
-        [comment.id, comment.offset]
-      );
-    replies = result;
-    statusCode = 200;
-  } catch (err) {
-    // console.log(err);
-  }
+    const query = prepareWriteQuery(type);
+    let [res] = await getResponseDb(query, [entityId, userId, comment]);
 
-  return { sC: statusCode, replies };
-};
-
-export const writeReply = async (userId, commentObj, entityId) => {
-  let statusCode = 500,
-    replyId = null;
-  try {
-    await connection.promise().beginTransaction();
-
-    let [validReq] = await connection
-      .promise()
-      .query(`select * from comments where ${commentObj.type}_id=? and id=?`, [
-        entityId,
-        commentObj.id,
-      ]);
-
-    if (validReq.length == 0) {
-      statusCode = 400;
-      throw new Error("No comment like that with that post/answer");
+    if (affectedOne(res)) {
+      success = true;
+      commentId = res.insertId;
     }
-
-    let [result] = await connection
-      .promise()
-      .query(
-        `insert into comments (user_id, comment, ${commentObj.type}_id, reply_id) values (?, ?, ?, ?)`,
-        [userId, commentObj.comment, entityId, commentObj.id]
-      );
-
-    replyId = result.insertId;
-    statusCode = 201;
-    await connection.promise().commit();
   } catch (err) {
-    await connection.promise().rollback();
-    // console.log(err)
+    console.log(err);
   }
 
-  return { sC: statusCode, replyId };
+  return { success, commentId };
 };
 
-const prepareQueryWrite = (type) => {
-  if (type === "post" || type === "answer")
+const haveUserCommented = async (userId, id) => {
+  try {
+    let [res] = await getResponseDb(
+      "select * from comments where user_id=? and id=?",
+      [userId, id]
+    );
+
+    if (!isEmpty(res)) return true;
+  } catch (err) {
+    console.log(err);
+  }
+
+  return false;
+};
+
+const deleteComment = async (id) => {
+  try {
+    let [res] = await getResponseDb(
+      "delete from comments where reply_id=? or id=?",
+      [id]
+    );
+
+    if (affected(res)) return true;
+  } catch (err) {
+    console.log(err);
+  }
+
+  return false;
+};
+
+const haveUserVoted = async (userId, id) => {
+  let success = false,
+    voteVal = null;
+
+  try {
+    let [res] = await getResponseDb(
+      "select * from commentvotes where user_id=? and comment_id=?",
+      [userId, id]
+    );
+
+    if (!isEmpty(res)) {
+      success = true;
+      voteVal = res[0]["vote_value"];
+    }
+  } catch (err) {
+    console.log(err);
+  }
+
+  return { success, voteVal };
+};
+
+const vote = async (userId, id, voteVal, updating = false) => {
+  let query =
+    "insert into commentvotes (vote_value, user_id, comment_id) values (?, ?, ?)";
+  if (updating)
+    query =
+      "update commentvotes set vote_value=? where user_id=? and comment_id=?";
+
+  try {
+    let [res] = await getResponseDb(query, [voteVal, userId, id]);
+
+    if (affectedOne(res)) return true;
+  } catch (err) {
+    console.log(err);
+  }
+
+  return false;
+};
+
+const updateCommentVotes = async (
+  voteVal,
+  newVoteVal,
+  id,
+  updating = false
+) => {
+  const change = updating ? newVoteVal - voteVal : newVoteVal;
+
+  try {
+    let [res] = await getResponseDb(
+      "update comments set votes = votes + ? where id=?",
+      [change, id]
+    );
+
+    if (affectedOne(res)) return true;
+  } catch (err) {
+    console.log(err);
+  }
+
+  return false;
+};
+
+const getReplies = async (id, offset) => {
+  let replies = [];
+
+  try {
+    let [res] = await getResponseDb(
+      `select * from comments where reply_id=? ${DEFAULTCOMMENTSORDER} limit ${DEFAULTCOMMENTLIMIT} offset ?`,
+      [id, offset]
+    );
+
+    replies = res;
+  } catch (err) {
+    console.log(err);
+  }
+
+  return replies;
+};
+
+const isAComment = async (type, entityId, id) => {
+  try {
+    let [res] = await getResponseDb(
+      `select * from comments where ${type}_id=? and id=?`,
+      [entityId, id]
+    );
+
+    if (!isEmpty(res)) return true;
+  } catch (err) {
+    console.log(err);
+  }
+
+  return false;
+};
+
+const writeReply = async (userId, type, entityId, id, comment) => {
+  let success = false,
+    replyId = null;
+
+  try {
+    let [res] = await getResponseDb(
+      `insert into comments (user_id, comment, ${type}_id, reply_id) values (?, ?, ?, ?)`,
+      [userId, comment, entityId, id]
+    );
+
+    if (affectedOne(res)) {
+      success = true;
+      replyId = res.insertId;
+    }
+  } catch (err) {
+    console.log(err);
+  }
+
+  return { success, replyId };
+};
+
+const prepareWriteQuery = (type) => {
+  if (type === commentType.POST || type === commentType.ANSWER)
     return `insert into comments (${type}_id, user_id, comment) values (?, ?, ?)`;
   else {
     let error = new Error("Type not valid");
-    error.errno = 450;
     throw error;
   }
 };
 
-const prepareQueryRead = (type) => {
-  if (type === "post" || type === "answer")
-    return `select * from comments where (${type}_id = ? and reply_id is null) order by votes desc, timestamp desc limit 10 offset ?`;
+const prepareReadQuery = (type) => {
+  if (type === commentType.POST || type === commentType.ANSWER)
+    return `select * from comments where (${type}_id = ? and reply_id is null) ${DEFAULTCOMMENTSORDER} limit ${DEFAULTCOMMENTLIMIT} offset ?`;
   else {
     let error = new Error("Type not valid");
-    error.errno = 450;
     throw error;
   }
 };
+
+const db = {
+  getComments,
+  writeComment,
+  haveUserCommented,
+  haveUserVoted,
+  deleteComment,
+  vote,
+  updateCommentVotes,
+  isAComment,
+  getReplies,
+  writeReply,
+};
+
+export default db;

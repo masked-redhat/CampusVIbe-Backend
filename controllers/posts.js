@@ -13,8 +13,8 @@ class Post {
     this.title = params?.title ?? null;
     this.content = params?.content ?? null;
     this.image = fileObj?.filename ?? null;
-    this.offsetValue = parseInt(params?.offsetValue)
-      ? isNumeric(params?.offsetValue)
+    this.offset = parseInt(params?.offset)
+      ? isNumeric(params?.offset)
       : 0;
     this.postId = params?.postId ?? null;
     this.type = params?.type ?? feed.PERSONAL;
@@ -23,7 +23,7 @@ class Post {
   getPosts = async () => {
     return await db.getPosts(
       this.user,
-      this.offsetValue,
+      this.offset,
       this.type === feed.PERSONAL
     );
   };
@@ -70,7 +70,7 @@ class Post {
       title: this.title,
       content: this.content,
       image: this.image,
-      offsetVal: this.offsetValue,
+      offset: this.offset,
       postId: this.postId,
     };
     return postObj;

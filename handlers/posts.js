@@ -1,4 +1,5 @@
 import Post from "../controllers/posts.js";
+import codes from "../utils/status_codes.js";
 
 const handleGetPosts = async (req) => {
   const post = new Post(req.user.uid, req.query);

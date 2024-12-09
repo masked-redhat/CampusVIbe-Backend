@@ -1,7 +1,6 @@
 import { Router } from "express";
 import authenticate from "../middleware/authentication.js";
 import upload from "../middleware/parser.js";
-import Post from "../controllers/posts.js";
 import codes from "../utils/status_codes.js";
 import handlers from "../handlers/posts.js";
 

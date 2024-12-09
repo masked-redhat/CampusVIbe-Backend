@@ -1,15 +1,9 @@
 import { Router } from "express";
 import authenticate from "../middleware/authentication.js";
-import PostParams from "../utils/post.js";
-import {
-  deletePost,
-  getAllPostsExceptUser,
-  getPostForUser,
-  insertPost,
-  likePost,
-  unlikePost,
-} from "../database/posts.js";
 import upload from "../middleware/parser.js";
+import Post from "../controllers/posts.js";
+import codes from "../utils/status_codes.js";
+import handlers from "../handlers/posts.js";
 
 const router = Router();
 
@@ -18,68 +12,47 @@ router.use(authenticate);
 
 // Get posts
 router.get("/", async (req, res) => {
-  const postVals = new PostParams(req.query)
-  const userId = req.user.uid;
-  let postsToSend = {},
-    sC = 200;
+  const { statusCode, message, posts } = await handlers.handleGetPosts(req);
 
-  if (params.type === "personal") {
-    // Personal posts
-    let response = await getPostForUser(userId, postVals.offsetValue);
-    postsToSend = response.posts;
-    sC = response.sC;
-  } else {
-    // Every other request would be considered 'global'
-    let response = await getAllPostsExceptUser(userId, postVals.offsetValue);
-    postsToSend = response.posts;
-    sC = response.sC;
-  }
-
-  res.status(sC).json({ posts: postsToSend });
+  res.status(statusCode).json({ message, posts });
 });
 
 // Create post
 router.post("/", upload.single("image"), async (req, res) => {
-  const postVals = new PostParams(req.body, req.file);
+  const { statusCode, message, postData } = await handlers.handleCreatePost(
+    req
+  );
 
-  const result = await insertPost(req.user.uid, postVals);
-
-  res.status(result.sC).json({ postID: result.pID });
+  res.status(statusCode).json({ message, post: postData });
 });
 
 // Delete post
 router.delete("/", async (req, res) => {
-  const postID = getPostID(req.query);
-  if (postID) {
-    let sC = await deletePost(req.user.uid, postID);
-    res.sendStatus(sC);
-  } else res.sendStatus(400);
+  const { statusCode, message } = await handlers.handleDeletePost(req);
+
+  res.status(statusCode).json({ message });
 });
 
 // Like post
 router.patch("/like", async (req, res) => {
-  const postID = getPostID(req.query);
-  if (postID) {
-    let sC = await likePost(req.user.uid, postID);
-    res.sendStatus(sC);
-  } else res.sendStatus(400);
+  const { statusCode, message } = await handlers.handleLikePost(req);
+
+  res.status(statusCode).json({ message });
 });
 
 // Unlike post
 router.delete("/like", async (req, res) => {
-  const postID = getPostID(req.query);
-  if (postID) {
-    let sC = await unlikePost(req.user.uid, postID);
-    res.sendStatus(sC);
-  } else res.sendStatus(400);
+  const { statusCode, message } = await handlers.handleUnLikePost(req);
+
+  res.status(statusCode).json({ message });
 });
 
-router.all("/", (req, res) => {
-  res.sendStatus(405);
+router.all("/", (_, res) => {
+  res.sendStatus(codes.clientError.METHOD_NOT_ALLOWED);
 });
 
-router.all("/like", (req, res) => {
-  res.sendStatus(405);
+router.all("/like", (_, res) => {
+  res.sendStatus(codes.clientError.METHOD_NOT_ALLOWED);
 });
 
 export const PostRouter = router;

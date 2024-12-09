@@ -1,155 +1,141 @@
-import connection, { getResponseDb } from "./connection.js";
-import { getFriends } from "./friends.js";
+import Friend from "../controllers/friends.js";
+import { affectedOne, isEmpty } from "../utils/utils.js";
+import { getResponseDb } from "./connection.js";
 
-const PERREQUESTPOSTLIMIT = 10;
+const DEFAULTPOSTORDER = "order by timestamp desc";
+const DEFAULTPOSTLIMIT = 10;
 
-export const getAllPostsExceptUser = async (userID, offsetValue = 0) => {
-  let statusCode = 500,
-    posts = [];
+const insertPost = async (userId, title, content, image) => {
+  let postId = null;
+
   try {
-    let queryResponse = await getResponseDb(
-      "select * from posts where user_id <> ? order by timestamp desc limit ? offset ?",
-      [userID, PERREQUESTPOSTLIMIT, offsetValue]
-    );
-
-    posts = queryResponse[0];
-    statusCode = 200;
-  } catch (err) {
-    console.log(err);
-    statusCode = 500;
-  }
-  return { sC: statusCode, posts: posts };
-};
-
-export const getPostForUser = async (userID, offsetValue = 0) => {
-  let statusCode = 500,
-    posts = [];
-  try {
-    let friends = getFriendIDs((await getFriends(userID)).friends);
-
-    if (friends.length == 0) statusCode = 200;
-    else {
-      let query = prepareQuery(friends);
-      let result = await getResponseDb(query, [
-        ...friends,
-        PERREQUESTPOSTLIMIT,
-        offsetValue,
-      ]);
-      posts = result[0];
-      statusCode = 200;
-    }
-  } catch (err) {}
-
-  return { sC: statusCode, posts: posts };
-};
-
-export const insertPost = async (userID, postData) => {
-  let statusCode = 500,
-    postID = null;
-  try {
-    let post = await getResponseDb(
+    let [post] = await getResponseDb(
       "insert into posts (user_id, title, content, image) values (?, ?, ?, ?)",
-      [userID, postData.title, postData.content, postData.image]
+      [userId, title, content, image]
     );
 
-    postID = post[0].insertId;
-    statusCode = 201;
+    if (affectedOne(post)) postId = post.insertId;
   } catch (err) {
     console.log(err);
-    statusCode = 500;
-    if (err.errno == 1048) statusCode = 422;
   }
 
-  return { pID: postID, sC: statusCode };
+  return { success: postId !== null, postId };
 };
 
-export const deletePost = async (userID, postID) => {
-  let statusCode = 500;
+const deletePost = async (userId, postId) => {
   try {
-    let res = await getResponseDb(
-      "delete from posts where id = ? and user_id = ?",
-      [postID, userID]
+    let [res] = await getResponseDb(
+      "delete from posts where id=? and user_id=?",
+      [postId, userId]
     );
-    if (res[0].affectedRows == 1) statusCode = 204;
-    else statusCode = 400;
+
+    if (affectedOne(res)) return true;
   } catch (err) {
     console.log(err);
-    statusCode = 500;
   }
-  return statusCode;
+
+  return false;
 };
 
-export const likePost = async (userID, postID) => {
-  let statusCode = 500;
+const like = async (userId, postId) => {
   try {
-    await connection.promise().beginTransaction();
-
-    await getResponseDb("insert into likes (user_id, post_id) values (?, ?)", [
-      userID,
-      postID,
-    ]);
-
-    const [updateResult] = await getResponseDb(
-      "update posts set likes = likes +1 where id=?",
-      [postID]
+    let [res] = await getResponseDb(
+      "insert into likes (user_id, post_id) values (?, ?)",
+      [userId, postId]
     );
 
-    if (updateResult.affectedRows == 0)
-      throw new Error("Post not found or update failed");
-
-    await connection.promise().commit();
-    statusCode = 204;
+    if (affectedOne(res)) return true;
   } catch (err) {
-    await connection.promise().rollback();
-    if (err.errno == 1062 || err.errno == 1452) statusCode = 400;
+    console.log(err);
   }
-  return statusCode;
+
+  return false;
 };
 
-export const unlikePost = async (userID, postID) => {
-  let statusCode = 500;
-
+const unlike = async (userId, postId) => {
   try {
-    await connection.promise().beginTransaction();
-
-    let [delRequest] = await getResponseDb(
+    let [res] = await getResponseDb(
       "delete from likes where user_id=? and post_id=?",
-      [userID, postID]
-    );
-    if (delRequest.affectedRows == 0) {
-      statusCode = 400;
-      throw new Error("You never liked the post");
-    }
-
-    let [updateRequest] = await getResponseDb(
-      "update posts set likes = likes-1 where id=?",
-      [postID]
+      [userId, postId]
     );
 
-    await connection.promise().commit();
-    statusCode = 204;
+    if (affectedOne(res)) return true;
   } catch (err) {
-    await connection.promise().rollback();
-    if (err.errno == 1062 || err.errno == 1452) statusCode = 400;
+    console.log(err);
   }
 
-  return statusCode;
+  return false;
 };
 
-const getFriendIDs = (friends) => {
-  let friendList = [];
-  friends.forEach((friend) => {
-    friendList.push(friend.id);
-  });
-  return friendList;
+const increaseLikeCount = async (postId) => {
+  try {
+    let [res] = await getResponseDb(
+      "update posts set likes = likes+1 where id=?",
+      [postId]
+    );
+
+    if (affectedOne(res)) return true;
+  } catch (err) {
+    console.log(err);
+  }
+
+  return false;
 };
 
-const prepareQuery = (friends) => {
-  let query = "select * from posts where ";
-  friends.forEach((_, index) => {
-    query += "user_id=? ";
-    if (index != friends.length - 1) query += "or ";
-  });
-  query += "order by timestamp desc limit ? offset ?";
-  return query;
+const decreaseLikeCount = async (postId) => {
+  try {
+    let [res] = await getResponseDb(
+      "update posts set likes = likes-1 where id=?",
+      [postId]
+    );
+
+    if (affectedOne(res)) return true;
+  } catch (err) {
+    console.log(err);
+  }
+
+  return false;
 };
+
+const prepareQuery = async (userId, personal = true) => {
+  let friends = [];
+  if (personal) friends = await new Friend(userId).friendsList();
+
+  let queryAddition = !isEmpty(friends)
+    ? friends.map((_) => `user_id = ?`).join(" or ")
+    : "";
+  queryAddition = queryAddition ? `where ${queryAddition}` : "";
+
+  let query = `select * from posts ${queryAddition} ${DEFAULTPOSTORDER} limit ${DEFAULTPOSTLIMIT} offset ?`;
+
+  return { query, values: friends.map((f) => f.userId) };
+};
+
+const getPosts = async (userId, offset, personal = true) => {
+  let posts = [];
+
+  let query = await prepareQuery(userId, personal);
+  let values = [...query.values, offset].map((_) => `${_}`);
+
+  try {
+    let [res] = await getResponseDb(query.query, values);
+
+    posts = res;
+  } catch (err) {
+    console.log(err);
+  }
+
+  return posts;
+};
+
+const db = {
+  getPosts,
+  insertPost,
+  deletePost,
+  like,
+  increaseLikeCount,
+  unlike,
+  decreaseLikeCount,
+};
+
+export default db;

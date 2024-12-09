@@ -107,9 +107,8 @@ const getFriends = async (userId) => {
     );
 
     res.forEach((friendObj) => {
-      friendObj.friend = friendObj.user_2
-        ? friendObj.user_1 === userId
-        : friendObj.user_1;
+      friendObj.userId =
+        friendObj.user_1 === userId ? friendObj.user_2 : friendObj.user_1;
       delete friendObj.user_1;
       delete friendObj.user_2;
 

@@ -65,3 +65,7 @@ export const getMinMax = (...args) => {
 
   return { minVal, maxVal };
 };
+
+export const capitalize = (string) => {
+  return string[0].toUpperCase() + string.substring(1);
+};

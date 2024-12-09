@@ -48,16 +48,19 @@ export const runMultipleFunctionsAsync = async (
   let functionParams = 0;
   functions.forEach((func) => (functionParams += func.length));
 
-  if (functionParams !== values.length)
-    return new Error("Invalid number of parameters given to functions");
+  if (functionParams !== values.length) return false;
 
   let valuesDone = 0;
-  functions.forEach(async (func) => {
+
+  for (let i = 0; i < functions.length; i++) {
+    const func = functions[i];
+
     let res = await func(...values.slice(valuesDone, valuesDone + func.length));
-    if (res === throwErrorAt)
-      return new Error("Invalid result to continue operations");
+    if (res === throwErrorAt) return false;
     valuesDone += func.length;
-  });
+  }
+
+  return true;
 };
 
 export const getMinMax = (...args) => {

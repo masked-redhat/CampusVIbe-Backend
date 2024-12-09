@@ -28,9 +28,8 @@ export const chartTransaction = async (transactions = [], values = []) => {
   try {
     await connection.promise().beginTransaction();
 
-    let res = await runMultipleFunctionsAsync(transactions, values);
-
-    if (res instanceof Error) throw res;
+    if (!(await runMultipleFunctionsAsync(transactions, values)))
+      throw new Error("transaction failed");
 
     await connection.promise().commit();
     return true;

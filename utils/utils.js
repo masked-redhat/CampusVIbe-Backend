@@ -20,24 +20,12 @@ export const affectedOne = (entity) => {
   return entity.affectedRows === 1;
 };
 
-export const runMultipleFunctions = (
-  functions = [],
-  values = [],
-  throwErrorAt = false
-) => {
-  let functionParams = 0;
-  functions.forEach((func) => (functionParams += func.length));
+const functionParameters = (func) => {
+  let params = func.toString().match(/\([\s\S]*?\)/)[0];
+  params = params.replace(/=[\s\S]*[\)\,]/, "").replace("(", "");
+  params = params.split(",");
 
-  if (functionParams !== values.length)
-    throw new Error("Invalid number of parameters given to functions");
-
-  let valuesDone = 0;
-  functions.forEach((func) => {
-    let res = func(...values.slice(valuesDone, valuesDone + func.length));
-    if (res === throwErrorAt)
-      throw new Error("Invalid result to continue operations");
-    valuesDone += func.length;
-  });
+  return params;
 };
 
 export const runMultipleFunctionsAsync = async (
@@ -46,7 +34,9 @@ export const runMultipleFunctionsAsync = async (
   throwErrorAt = false
 ) => {
   let functionParams = 0;
-  functions.forEach((func) => (functionParams += func.length));
+  functions.forEach(
+    (func) => (functionParams += functionParameters(func).length)
+  );
 
   if (functionParams !== values.length) return false;
 
@@ -54,10 +44,11 @@ export const runMultipleFunctionsAsync = async (
 
   for (let i = 0; i < functions.length; i++) {
     const func = functions[i];
+    const params = functionParameters(func).length;
 
-    let res = await func(...values.slice(valuesDone, valuesDone + func.length));
+    let res = await func(...values.slice(valuesDone, valuesDone + params));
     if (res === throwErrorAt) return false;
-    valuesDone += func.length;
+    valuesDone += params;
   }
 
   return true;

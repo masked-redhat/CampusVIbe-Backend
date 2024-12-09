@@ -1,8 +1,7 @@
 import { Router } from "express";
 import authenticate from "../middleware/authentication.js";
-import upload from "../middleware/parser.js";
-import { getUserInfo, isBusinessRequest } from "../utils/profile.js";
-import { getProfile } from "../database/profile.js";
+import codes from "../utils/status_codes.js";
+import User from "../controllers/profile.js";
 
 const router = Router();
 
@@ -11,20 +10,53 @@ router.use(authenticate);
 
 // Get user profile
 router.get("/", async (req, res) => {
-  const businessProfile = isBusinessRequest(req.query);
+  const user = new User(req.user.uid);
+  await user.getUser();
 
-  let result = await getProfile(req.user.uid, businessProfile);
+  const profile = user.getProfile();
 
-  res.status(result.sC).json({ profile: result.profile });
+  let statusCode, message;
+
+  if (!profile.success) {
+    statusCode = codes.serverError.INTERNAL_SERVER_ERROR;
+    message = "profile could not be processed";
+  } else {
+    statusCode = codes.get.OK;
+    message = "here's your profile";
+  }
+
+  res.status(statusCode).json({ message, profile: profile.profile });
 });
 
 // Set user profile
 router.post("/", async (req, res) => {
-  let userInfo = getUserInfo(req.body);
+  const profile = new User(req.user.uid, req.body);
+});
 
-  console.log(userInfo);
+// update user profile full
+router.put("/", async (req, res) => {});
 
-  res.sendStatus(200);
+// update user profile patch
+router.patch("/", async (req, res) => {});
+
+// get business profile if available
+router.get("/business", async (req, res) => {});
+
+// setup business profile
+router.post("/business", async (req, res) => {});
+
+// update business profile full
+router.put("/business", async (req, res) => {});
+
+// update business profile patch
+router.patch("/business", async (req, res) => {});
+
+router.all("/", (_, res) => {
+  res.sendStatus(codes.clientError.METHOD_NOT_ALLOWED);
+});
+
+router.all("/business", (_, res) => {
+  res.sendStatus(codes.clientError.METHOD_NOT_ALLOWED);
 });
 
 export const ProfileRouter = router;

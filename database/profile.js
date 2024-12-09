@@ -1,38 +1,77 @@
-import connection from "./connection.js";
+import { affectedOne, capitalize, isEmpty } from "../utils/utils.js";
+import { getResponseDb } from "./connection.js";
 
-export const getProfile = async (userID, business) => {
-  let statusCode = 500,
-    profile = {};
+const DEFAULTPFP = "usericon.png";
+
+const getUserByUserId = async (id) => {
+  let user = null;
 
   try {
-    let profileLoc = "user";
-    if (business) {
-      let [user] = await connection
-        .promise()
-        .query("select * from users where id=?", [userID]);
-      if (user.business) profileLoc = "business";
-      else {
-        statusCode = 400;
-        throw new Error(
-          "No business profile for this account has been registered"
-        );
-      }
-    }
+    let [res] = await getResponseDb("select * from users where id=?", [id]);
 
-    let [user] = await connection
-      .promise()
-      .query(`select * from ${profileLoc}_profile where user_id=?`, [userID]);
-
-    profile = user;
-    statusCode = 200;
+    if (!isEmpty(res)) user = res[0];
   } catch (err) {
-    // console.log(err);
+    console.log(err);
   }
 
-  return { sC: statusCode, profile };
+  return user;
 };
 
+const getUserProfileByUserId = async (id) => {
+  let profile = null;
 
-export const setProfile = async (userID, userInfo, buisness) => {
-    
-}
+  try {
+    let [res] = await getResponseDb(
+      "select * from user_profile where user_id=?",
+      [id]
+    );
+
+    if (!isEmpty(res)) profile = res[0];
+  } catch (err) {
+    console.log(err);
+  }
+
+  return profile;
+};
+
+const createUserProfile = async (
+  userId,
+  firstName,
+  lastName = null,
+  pfp = DEFAULTPFP
+) => {
+  if (pfp === null) pfp = DEFAULTPFP;
+
+  let profileId = null,
+    profile = null;
+
+  try {
+    let [res] = await getResponseDb(
+      "insert into user_profile (user_id, first_name, last_name, pfp) values (?, ?, ?, ?)",
+      [userId, firstName, lastName, pfp]
+    );
+
+    if (affectedOne(res)) profileId = res.insertId;
+  } catch (err) {
+    console.log(err);
+  }
+
+  if (profileId !== null)
+    profile = {
+      id: profileId,
+      user_id: userId,
+      first_name: firstName,
+      last_name: lastName,
+      pfp: pfp,
+    };
+
+  return { created: profileId !== null, profile };
+};
+
+const db = {
+  getUserByUserId,
+  getUserProfileByUserId,
+  createUserProfile,
+};
+
+export default db;

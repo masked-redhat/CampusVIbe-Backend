@@ -4,10 +4,9 @@
     "main": "index.js",
     "type": "module",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
+        "jest": "echo \"Error: no test specified\" && exit 1",
         "start": "node app.json",
-        "dev": "nodemon ./app.js",
-        "build": "npx tailwindcss -i ./public/css/input.css -o ./public/css/output.css --watch"
+        "dev": "nodemon ./app.js"
     },
     "keywords": [],
     "author": "",
@@ -16,6 +15,7 @@
     "dependencies": {
         "bcryptjs": "^2.4.3",
         "express": "^4.21.1",
+        "jest": "^29.7.0",
         "jsonwebtoken": "^9.0.2",
         "multer": "^1.4.5-lts.1",
         "mysql2": "^3.11.5",

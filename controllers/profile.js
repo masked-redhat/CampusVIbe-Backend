@@ -1,5 +1,4 @@
 import db from "../database/profile.js";
-import { capitalize } from "../utils/utils.js";
 
 class User {
   #username;
@@ -9,27 +8,27 @@ class User {
   #currUserProfile;
   #isCurrProfile;
 
-  constructor(userId, params = null) {
+  constructor(userId, params = null, file = null) {
     this.id = userId;
     this.firstName = params?.firstName ?? null;
     this.lastName = params?.lastName ?? null;
-    this.pfp = params?.pfp ?? null;
+    this.pfp = file?.filename ?? db.DEFAULTPFP;
   }
 
-  getUser = async () => {
+  getUser = async (business=false) => {
     let user = await db.getUserByUserId(this.id);
 
     this.#username = user?.username ?? null;
     this.#blacklist = user?.blacklist ?? null;
     this.#businessProfile = user?.business ?? null;
 
-    const profile = await this.getUserProfile();
+    const profile = await this.getUserProfile(business);
     this.#isCurrProfile = profile.success;
     this.#currUserProfile = profile.profile;
   };
 
-  getUserProfile = async () => {
-    let profile = await db.getUserProfileByUserId(this.id),
+  getUserProfile = async (business=false) => {
+    let profile = await db.getUserProfileByUserId(this.id, business),
       success = false;
 
     if (profile === null) {
@@ -41,13 +40,19 @@ class User {
     profile.username = this.getUsername();
 
     delete profile.id;
-    delete profile.user_id;
 
     return { success, profile };
   };
 
-  createProfile = async () => {
-    return await db.createUserProfile(this.id, capitalize(this.#username));
+  createProfile = async (business = false) => {
+    if (!business)
+    return await db.createUserProfile(
+      this.id,
+      this.firstName ?? this.#username ?? null,
+      this.lastName,
+      this.pfp
+    );
+    else return await db.createBusinessProfile
   };
 
   userProfile = async () => {
@@ -69,6 +74,15 @@ class User {
 
   getProfile = () => {
     return { success: this.#isCurrProfile, profile: this.#currUserProfile };
+  };
+
+  updateProfile = async () => {
+    return await db.updateUserProfile(
+      this.id,
+      this.firstName,
+      this.lastName,
+      this.pfp
+    );
   };
 }
 

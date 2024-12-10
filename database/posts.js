@@ -104,11 +104,13 @@ const prepareQuery = async (userId, personal = true) => {
   let queryAddition = !isEmpty(friends)
     ? friends.map((_) => `user_id = ?`).join(" or ")
     : "";
-  queryAddition = queryAddition ? `where ${queryAddition}` : "";
+  queryAddition = queryAddition
+    ? `where (user_id <> ?) and (${queryAddition})`
+    : "where user_id <> ?";
 
   let query = `select * from posts ${queryAddition} ${DEFAULTPOSTORDER} limit ${DEFAULTPOSTLIMIT} offset ?`;
 
-  return { query, values: friends.map((f) => f.userId) };
+  return { query, values: [userId, ...friends.map((f) => f.userId)] };
 };
 
 const getPosts = async (userId, offset, personal = true) => {

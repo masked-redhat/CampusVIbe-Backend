@@ -13,11 +13,11 @@ export const isEmpty = (entity = []) => {
 };
 
 export const affected = (entity) => {
-  return entity.affectedRows !== 0;
+  return entity.affectedRows !== 0 || entity.changedRows !== 0;
 };
 
 export const affectedOne = (entity) => {
-  return entity.affectedRows === 1;
+  return entity.affectedRows === 1 || entity.changedRows === 1;
 };
 
 const functionParameters = (func) => {
@@ -68,4 +68,23 @@ export const getMinMax = (...args) => {
 
 export const capitalize = (string) => {
   return string[0].toUpperCase() + string.substring(1);
+};
+
+export const prepareQuerySelectValNotNull = (
+  params = [],
+  values = [],
+  command = "set",
+  force = false
+) => {
+  let queryAddition = [];
+  let validVals = [];
+  for (let i = 0; i < params.length; i++) {
+    if (values[i] !== null) {
+      queryAddition.push(`${params[i]}=?`);
+      validVals.push(values[i]);
+    }
+  }
+  queryAddition = queryAddition.join(", ");
+  queryAddition = queryAddition || force ? command + " " + queryAddition : "";
+  return { queryAddition, values: validVals };
 };

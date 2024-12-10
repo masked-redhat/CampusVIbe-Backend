@@ -6,6 +6,7 @@ import { PostRouter } from "./routes/posts.js";
 import { FriendRouter } from "./routes/friends.js";
 import { CommentRouter } from "./routes/comments.js";
 import { ProfileRouter } from "./routes/profile.js";
+import { NewsRouter } from "./routes/news.js";
 dotenv.config();
 
 // Defining Application
@@ -29,6 +30,7 @@ app.use("/posts", PostRouter);
 app.use("/friends", FriendRouter);
 app.use("/comments", CommentRouter);
 app.use("/profile", ProfileRouter);
+app.use("/news", NewsRouter)
 
 // Starting application
 app.listen(port, () => {

@@ -1,27 +1,5 @@
-# Campus Vibe Application - Backend
+To DO: The code will be deleted and will be refactored again.
+There are still some really bad designs and,
+the decision weren't thought with clarity creating really bad situation in this structure
 
-Actions that are supported currently:
-## /login
--   Login (Existing Accounts)
--   Sign Up (Creating New Account)
-
-## /posts
--   Getting the posts
-    -   Personalized (Friends recent)
-    -   All posts
--   Creating the post
--   Liking and unliking the post
--   Deleting the post
-
-## /comments
--   Commenting on post
--   Replying to a comment
--   Getting the comments and replies
--   Upvoting and downvoting comments and replies
--   Deleting comment/reply
-
-## /friends
--   Getting all the friends of a user
--   Making a friends request
--   Accepting the friend request
--   Unfriending
+## The code will be rewritten and implemented again with taking good decisions and proper code considerations and system designs.

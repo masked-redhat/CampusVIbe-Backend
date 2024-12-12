@@ -4,3 +4,4 @@ public/assets
 public/images/*
 components
 *.env
+logs

@@ -1,12 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
-import connection from "./database/connection.js";
+import cookieParser from "cookie-parser";
 import { LoginRouter } from "./routes/login.js";
-import { PostRouter } from "./routes/posts.js";
-import { FriendRouter } from "./routes/friends.js";
-import { CommentRouter } from "./routes/comments.js";
-import { ProfileRouter } from "./routes/profile.js";
-import { NewsRouter } from "./routes/news.js";
 dotenv.config();
 
 // Defining Application
@@ -15,22 +10,20 @@ const port = process.env.PORT;
 const imageFolder = process.env.IMAGEUPLOADDEST;
 
 // Checking Connection to Database
-connection.connect((err) => {
-  if (err) throw err;
-  console.log("Connected to Database!");
-});
+// connection.connect((err) => {
+//   if (err) throw err;
+//   console.log("Connected to Database!");
+// });
+
+// Public folder that contains images
+app.use(express.static(imageFolder));
 
 // Global middlewares
-app.use(express.static(imageFolder));
 app.use(express.json());
+app.use(cookieParser())
 
 // Routes
-app.use("/login", LoginRouter);
-app.use("/posts", PostRouter);
-app.use("/friends", FriendRouter);
-app.use("/comments", CommentRouter);
-app.use("/profile", ProfileRouter);
-app.use("/news", NewsRouter)
+app.use("/login", LoginRouter)
 
 // Starting application
 app.listen(port, () => {

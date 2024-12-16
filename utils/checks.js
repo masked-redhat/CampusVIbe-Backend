@@ -2,8 +2,8 @@ const isNull = (entity) => {
   return entity === null;
 };
 
-const isTrue = (entity) => {
-  return entity === true;
+const isTrue = (entity, trueCondition = true) => {
+  return entity === trueCondition;
 };
 
 const isNotNuldefined = (entity) => {

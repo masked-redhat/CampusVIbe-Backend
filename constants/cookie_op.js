@@ -1,4 +1,4 @@
-import constants from "./jwt_auth";
+import constants from "./jwt_auth.js";
 
 const COOKIE_OPTIONS = {
   httpOnly: true,

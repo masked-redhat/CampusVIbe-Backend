@@ -48,7 +48,7 @@ const validateAuth = async (req, next) => {
 
   // if refresh is valid, reset access token for user
   if (verified) {
-    const accessToken = resetAuthForUser({ id: user.id });
+    const accessToken = resetAuth({ id: user.id });
 
     return { verified, accessToken };
   }

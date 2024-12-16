@@ -1,6 +1,7 @@
 import bcryptjs from "bcryptjs";
 import SALT_ROUNDS from "../constants/hash_pass.js";
 import checks from "./checks.js";
+import codes from "./codes.js";
 
 class HashPassword {
   #saltRounds = SALT_ROUNDS;

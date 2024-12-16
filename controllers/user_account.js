@@ -1,6 +1,5 @@
-class UserAccount{
-
-    constructor(username, password){
-        
-    }
+class UserAccount {
+  constructor(username, password) {
+    
+  }
 }

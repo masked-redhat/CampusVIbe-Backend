@@ -5,7 +5,7 @@ import { DataTypes as DT } from "sequelize";
 sequelize.define("User", {
   id: DATABASE.id,
   username: {
-    type: DT.INTEGER,
+    type: DT.STRING,
     unique: true,
     allowNull: false,
   },
@@ -16,6 +16,7 @@ sequelize.define("User", {
   blacklist: {
     type: DT.BOOLEAN,
     defaultValue: false,
+    allowNull: false,
   },
   businessProfile: {
     type: DT.BOOLEAN,

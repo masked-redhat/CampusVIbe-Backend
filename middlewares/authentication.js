@@ -1,12 +1,15 @@
 import COOKIE_OPTIONS from "../constants/cookie_op.js";
 import { JwtAuth } from "../controllers/jwt_authentication.js";
+import User from "../models/user.js";
+import checks from "../utils/checks.js";
+import responses from "../utils/response.js";
 
 const ERROR_CALLBACK_URL = "/login";
-const USER_KEY = "id";
+const USER_KEY = "username";
 
-const setupAuth = (res, userData) => {
+const setupAuth = (res, userData, userKey = USER_KEY) => {
   // create tokens
-  const userTokenizer = new JwtAuth.JwtTokenizer(userData, USER_KEY);
+  const userTokenizer = new JwtAuth.JwtTokenizer(userData, userKey);
   const tokens = userTokenizer.createTokens();
 
   // return the access token to be sent by http method
@@ -22,8 +25,14 @@ const resetAuth = (userData) => {
   return accessToken;
 };
 
-const validateAuth = async (req, next) => {
-  const userValidator = new JwtAuth.JwtValidator();
+const validateAuth = async (req, res, next) => {
+  const userValidator = new JwtAuth.JwtValidator(async (entity) => {
+    const where = {};
+    where[USER_KEY] = entity[USER_KEY];
+    const user = await User.findOne({ where: where });
+    if (checks.isNotNuldefined(user)) return true;
+    return false;
+  });
 
   // check if access token is valid
   // return user value in req
@@ -33,8 +42,10 @@ const validateAuth = async (req, next) => {
     let { verified, entity: user } = await userValidator.validate(accessToken);
 
     if (verified) {
+      req.verified = verified;
       req.user = user;
       next();
+      return;
     }
   }
 
@@ -48,13 +59,20 @@ const validateAuth = async (req, next) => {
 
   // if refresh is valid, reset access token for user
   if (verified) {
-    const accessToken = resetAuth({ id: user.id });
+    const accessToken = resetAuth({ USER_KEY: user[USER_KEY] });
 
-    return { verified, accessToken };
+    req.verified = verified;
+    req.accessToken = accessToken;
+    next();
+    return;
   }
-
   // if not, return bad status code
-  return { statusCode, verified };
+  else
+    responses.serve(
+      res,
+      statusCode,
+      "Authorization error, token validation failed"
+    );
 };
 
 const setRefreshTokenInCookie = (res, refreshToken) => {

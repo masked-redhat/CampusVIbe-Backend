@@ -54,12 +54,15 @@ class JwtValidator {
     this.verifyEntity = verifyFn ?? ((entity) => true);
   }
 
-  validate = async (token) => {
+  validate = async (token = null) => {
     let statusCode = codes.DEFAULT,
       verified = false,
       entity = null;
 
-    if (checks.isNull()) statusCode = codes.UNAUTHORIZED;
+    if (checks.isNull(token)) {
+      statusCode = codes.clientError.BAD_REQUEST;
+      return { statusCode, verified, entity };
+    }
 
     try {
       entity = jwt.verify(token, JWT_SECRET_KEY);

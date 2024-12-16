@@ -4,7 +4,7 @@ import sequelize from "./connection.js";
 
 const syncTables = async () => {
   await sequelize.sync();
-  //   await sequelize.sync({ force: true });
+    // await sequelize.sync({ force: true });
 };
 
 export default syncTables;

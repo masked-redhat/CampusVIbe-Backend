@@ -5,6 +5,7 @@ import { LoginRouter } from "./routes/login.js";
 import sequelize from "./db/connection.js";
 import syncTables from "./db/models.js";
 import upload from "./middlewares/parser.js";
+import { PostRouter } from "./routes/posts.js";
 dotenv.config();
 
 // Defining Application
@@ -32,6 +33,7 @@ app.use(cookieParser());
 
 // Routes
 app.use("/login", LoginRouter);
+app.use("/posts", PostRouter);
 
 // Starting application
 app.listen(port, () => {

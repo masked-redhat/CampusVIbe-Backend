@@ -30,7 +30,8 @@ const validateAuth = async (req, res, next) => {
     const where = {};
     where[USER_KEY] = entity[USER_KEY];
     const user = await User.findOne({ where: where });
-    if (checks.isNotNuldefined(user)) return true;
+    if (checks.isNotNuldefined(user) && checks.isTrue(!user.blacklist))
+      return true;
     return false;
   });
 

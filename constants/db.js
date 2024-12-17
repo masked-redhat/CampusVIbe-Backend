@@ -10,7 +10,7 @@ const DIALECT = "mysql";
 
 const id = {
   type: DT.UUID,
-//   autoIncrement: true,
+  // autoIncrement: true,
   allowNull: false,
   primaryKey: true,
   defaultValue: DT.UUIDV4,

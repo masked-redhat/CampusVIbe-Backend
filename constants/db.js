@@ -16,6 +16,15 @@ const id = {
   defaultValue: DT.UUIDV4,
 };
 
+const getIdOf = (model, type = DT.UUID, allowNull, args) => {
+  return {
+    type: type,
+    allowNull: allowNull,
+    ...args,
+    references: { model: model, key: "id" },
+  };
+};
+
 const DATABASE = {
   HOST,
   USER,
@@ -23,6 +32,7 @@ const DATABASE = {
   DB,
   DIALECT,
   id,
+  getIdOf
 };
 
 export default DATABASE;

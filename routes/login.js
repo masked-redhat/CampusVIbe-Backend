@@ -8,6 +8,7 @@ import responses from "../utils/response.js";
 
 const router = Router();
 
+// Login
 router.post("/", async (req, res) => {
   // get the username and password from the body that may have come
   // in json format
@@ -79,6 +80,7 @@ router.post("/", async (req, res) => {
   });
 });
 
+// Signup
 router.post("/new", async (req, res) => {
   const username = req.body.username;
   const passwordReq = req.body.password;

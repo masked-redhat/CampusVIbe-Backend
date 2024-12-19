@@ -6,6 +6,7 @@ import sequelize from "./db/connection.js";
 import syncTables from "./db/models.js";
 import upload from "./middlewares/parser.js";
 import { PostRouter } from "./routes/posts.js";
+import { FriendRouter } from "./routes/friend.js";
 dotenv.config();
 
 // Defining Application
@@ -34,6 +35,7 @@ app.use(cookieParser());
 // Routes
 app.use("/login", LoginRouter);
 app.use("/posts", PostRouter);
+app.use("/friends", FriendRouter);
 
 // Starting application
 app.listen(port, () => {

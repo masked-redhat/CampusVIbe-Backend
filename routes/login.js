@@ -24,8 +24,7 @@ router.post("/", async (req, res) => {
   if (!checks.isNotNuldefined(username) || !checks.isNotNuldefined(password)) {
     statusCode = codes.clientError.BAD_REQUEST;
     message = "Username or password blank";
-    responses.serve(res, statusCode, message);
-    return;
+    return responses.serve(res, statusCode, message);
   }
 
   // find the user
@@ -39,8 +38,7 @@ router.post("/", async (req, res) => {
   if (!checks.isNotNuldefined(user)) {
     statusCode = codes.clientError.NOT_FOUND;
     message = "No user found with that username";
-    responses.serve(res, statusCode, message);
-    return;
+    return responses.serve(res, statusCode, message);
   }
 
   // match if passwords are same
@@ -53,16 +51,14 @@ router.post("/", async (req, res) => {
   if (!checks.isTrue(matchPasswords.isMatch())) {
     statusCode = codes.clientError.UNAUTHORIZED;
     message = "Password incorrect for the user";
-    responses.serve(res, statusCode, message);
-    return;
+    return responses.serve(res, statusCode, message);
   }
 
   // if user is blacklisted
   if (checks.isTrue(user.blacklist)) {
     statusCode = codes.FORBIDDEN;
     message = "User is blacklisted, appeal to remove ban on this user";
-    responses.serve(res, statusCode, message);
-    return;
+    return responses.serve(res, statusCode, message);
   }
 
   // create tokens for the user for further authentication during
@@ -96,8 +92,7 @@ router.post("/new", async (req, res) => {
   if (!checks.isNotNuldefined(username) || !checks.isNotNuldefined(password)) {
     statusCode = codes.clientError.BAD_REQUEST;
     message = "Username or password blank";
-    responses.serve(res, statusCode, message);
-    return;
+    return responses.serve(res, statusCode, message);
   }
 
   // create new user in database
@@ -117,8 +112,7 @@ router.post("/new", async (req, res) => {
       statusCode = codes.serverError.INTERNAL_SERVER_ERROR;
       message = "Server is having issues processing requests like these";
     }
-    responses.serve(res, statusCode, message);
-    return;
+    return responses.serve(res, statusCode, message);
   }
 
   // create tokens for the user for further authentication during

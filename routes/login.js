@@ -100,6 +100,7 @@ router.post("/new", async (req, res) => {
     return;
   }
 
+  // create new user in database
   let user = null;
   try {
     user = await User.create({
@@ -109,8 +110,13 @@ router.post("/new", async (req, res) => {
   } catch (err) {
     console.log(err);
 
-    statusCode = codes.clientError.CONFLICT;
-    message = "A user with that username already exists";
+    if (checks.isErrorCode(err, 1062)) {
+      statusCode = codes.clientError.CONFLICT;
+      message = "A user with that username already exists";
+    } else {
+      statusCode = codes.serverError.INTERNAL_SERVER_ERROR;
+      message = "Server is having issues processing requests like these";
+    }
     responses.serve(res, statusCode, message);
     return;
   }
